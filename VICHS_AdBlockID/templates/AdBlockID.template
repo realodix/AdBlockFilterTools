@@ -1,0 +1,31 @@
+[Adblock Plus 2.0]
+! Version: @version
+! Title: AdBlockID
+! Description: Filter list that specifically removes adverts on Indonesian language websites.
+! Last modified: @modified
+! Expires: 4 days (update frequency)
+!
+! Homepage: https://github.com/realodix/AdBlockID
+! Issues: https://github.com/realodix/AdBlockID/issues
+! Pull requests: https://github.com/realodix/AdBlockID/pulls
+!
+@include general_block
+@include general_hide
+@include adservers
+@include thirdparty
+@include specific_block
+@include specific_hide
+@include extended
+!
+@include packages/adult-block
+@include packages/adult-hide
+@include packages/annoyances
+@include packages/comic
+@include packages/movie
+@include packages/sl_anti-adblock
+@include packages/sl_anti-safelink
+@include packages/sl_safelink
+@include packages/international
+!
+@include anti-adblock
+@include whitelist

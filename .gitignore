@@ -1,0 +1,8 @@
+VICHS_AdBlockID/output/
+VICHS_AdBlockID/src/
+VICHS_AdBlockID/z_*
+
+# Python
+*.pyc
+__pycache__
+**/*.egg-info

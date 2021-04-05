@@ -1,0 +1,470 @@
+diff --git a/VICHS/VICHS.sh b/VICHS_AdBlockID/VICHS.sh
+index 28f75d3..6a0ed3e 100644
+--- a/VICHS/VICHS.sh
++++ b/VICHS_AdBlockID/VICHS.sh
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+-# VICHS - Version Include Checksum Hosts Sort
+-# v2.26.3
++# VICHS AdBlockID v1.3.0
++# Based on VICHS v2.26.3
+ 
+ # MIT License
+ # Copyright (c) 2021 Polish Filters Team
+@@ -9,40 +9,16 @@
+ 
+ SCRIPT_PATH=$(dirname "$(realpath -s "$0")")
+ 
+-# MAIN_PATH to miejsce, w którym znajduje się główny katalog repozytorium
+-# Zakładamy, że skrypt znajduje się gdzieś w repozytorium git,
+-# w którym są pliki listy filtrów, którą chcemy zaktualizować.
+-# Jednakże jeżeli skrypt znajduje się gdzieś indziej, to
+-# zezwalamy na nadpisanie zmiennej MAIN_PATH.
+-if [ -z "$MAIN_PATH" ]; then
+-    MAIN_PATH=$(git -C "$SCRIPT_PATH" rev-parse --show-toplevel)
+-fi
++# MAIN_PATH is where the repository root is located (we assume that the script is in the
++# directory 1 lower than the root of the repository)
++MAIN_PATH="$SCRIPT_PATH"
+ 
+-# Tłumaczenie
+-# shellcheck disable=SC1091
+-. gettext.sh
+-export TEXTDOMAIN="VICHS"
+-export TEXTDOMAINDIR=$SCRIPT_PATH/locales
+-
+-# Przejście do katalogu, w którym znajduje się lokalne repozytorium git
++# Go to the directory where the local git repository is located
+ cd "$MAIN_PATH" || exit
+ 
+-# Lokalizacja pliku konfiguracyjnego
++# Location of the configuration file
+ CONFIG=$SCRIPT_PATH/VICHS.config
+ 
+-# Konfiguracja nazwy użytkownika i maila dla CI
+-if [ "$CI" = "true" ]; then
+-    CI_USERNAME=$(grep -oP -m 1 '@CIusername \K.*' "$CONFIG")
+-    CI_EMAIL=$(grep -oP -m 1 '@CIemail \K.*' "$CONFIG")
+-    git config --global user.name "${CI_USERNAME}"
+-    git config --global user.email "${CI_EMAIL}"
+-fi
+-
+-LOCALE=$(grep -oP -m 1 '@lang \K.*' "$CONFIG")
+-
+-if [ -n "$LOCALE" ]; then
+-    export LANGUAGE="$LOCALE"
+-fi
+ 
+ for i in "$@"; do
+ 
+@@ -56,7 +32,8 @@ for i in "$@"; do
+     }
+ 
+     function getOrDownloadExternal {
+-        # Zakładamy, że katalog zawierający inne sklonowane repozytorium znajduje się wyżej niż katalog naszej własnej listy
++        # We assume that the directory containing other cloned repository is higher than
++        # the directory of our own list
+         if [[ -n "$CLONED_EXTERNAL" ]] && [[ -f "$MAIN_PATH/../$CLONED_EXTERNAL" ]]; then
+             CLONED_EXTERNAL_FILE="$MAIN_PATH/../$CLONED_EXTERNAL"
+         else
+@@ -159,11 +136,11 @@ for i in "$@"; do
+         fi
+     }
+ 
+-    # FILTERLIST to nazwa pliku (bez rozszerzenia), który chcemy zbudować
++    # FILTERLIST is the name of the file (without extension) that we want to build
+     FILTERLIST_FILE=$(basename "$i")
+     FILTERLIST="${FILTERLIST_FILE%.*}"
+ 
+-    # Ustalanie ścieżki do szablonów
++    # Set the path to templates
+     if grep -q "@templatesPath" "$CONFIG"; then
+         TEMPLATE=$MAIN_PATH/$(grep -oP -m 1 '@templatesPath \K.*' "$CONFIG")/${FILTERLIST}.template
+     else
+@@ -174,18 +151,13 @@ for i in "$@"; do
+     FINAL_B=$MAIN_PATH/${FILTERLIST}.backup
+     TEMPORARY=$MAIN_PATH/${FILTERLIST}.temp
+ 
+-    # Tworzenie kopii pliku początkowego
++    # Make a copy of the initial file
+     cp -R "$FINAL" "$FINAL_B"
+ 
+-    # Podmienianie zawartości pliku końcowego na zawartość template'u
++    # Replace the contents of the final file with template content
+     cp -R "$TEMPLATE" "$FINAL"
+ 
+-    # Usuwanie DEV z nazwy filtrów
+-    if [ "$RTM" = "true" ]; then
+-        sed -i "s| DEV||g" "$FINAL"
+-    fi
+-
+-    # Ustalanie ścieżki do sekcji
++    # Set a path to a section
+     if grep -q "@path" "$FINAL"; then
+         SECTIONS_DIR=$MAIN_PATH/$(grep -oP -m 1 '@path \K.*' "$FINAL")
+     elif grep -q "@path" "$CONFIG"; then
+@@ -194,7 +166,7 @@ for i in "$@"; do
+         SECTIONS_DIR=$MAIN_PATH/sections/$FILTERLIST
+     fi
+ 
+-    # Ustalanie rozszerzenia plików sekcji
++    # Set section file extensions
+     if grep -q "@sectionsExt" "$FINAL"; then
+         SECTIONS_EXT="$(grep -oP -m 1 '@sectionsExt \K.*' "$FINAL")"
+     elif grep -q "@sectionsExt" "$CONFIG"; then
+@@ -203,28 +175,16 @@ for i in "$@"; do
+         SECTIONS_EXT="txt"
+     fi
+ 
+-    if [ -d "${SECTIONS_DIR}" ]; then
+-        # Usuwanie pustych linii z sekcji
+-        find "${SECTIONS_DIR}" -type f -exec sed -i '/^$/d' {} \;
+-
+-        # Usuwanie białych znaków z końca linii
+-        find "${SECTIONS_DIR}" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
+-
+-        # Sortowanie sekcji
+-        FOP="${SCRIPT_PATH}"/FOP.py
+-        if [ -f "$FOP" ]; then
+-            python3 "${FOP}" --d "${SECTIONS_DIR}"
+-        fi
+-        find "${SECTIONS_DIR}" -type f -exec sort -uV -o {} {} \;
+-    fi
+-
+-    # Plik tymczasowy do zapisu zewnętrznych sekcji
++    # Temporary file for saving external sections
+     EXTERNAL_TEMP="$SECTIONS_DIR"/external.temp
+ 
+-    # Obliczanie ilości sekcji (wystąpień słowa @include w template'cie)
++
++    #
++    # @include
++    # ------------------------------------------------------------------------------------
+     END=$(grep -oic '@include' "${TEMPLATE}")
+ 
+-    # Doklejanie sekcji w odpowiednie miejsca
++    # Add sections to the right places
+     for ((n = 1; n <= END; n++)); do
+         initVars "include"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -241,10 +201,13 @@ for i in "$@"; do
+         includeSection "include"
+     done
+ 
+-    # Obliczanie ilości sekcji, w których zostaną zwhitelistowane reguły sieciowe (wystąpień słowa @NWLinclude w template'cie)
++
++    #
++    # @NWLinclude
++    # ------------------------------------------------------------------------------------
+     END_NWL=$(grep -oic '@NWLinclude' "${TEMPLATE}")
+ 
+-    # Doklejanie sekcji w odpowiednie miejsca i zamiana na wyjątki
++    # Add sections to the right places and replace them with exceptions
+     for ((n = 1; n <= END_NWL; n++)); do
+         initVars "NWLinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -263,10 +226,13 @@ for i in "$@"; do
+         includeSection "NWLinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, w których zostaną zwhitelistowane reguły sieciowe z wykorzystaniem modyfikatora badfilter (wystąpień słowa @BNWLinclude w template'cie)
++
++    #
++    # @BNWLinclude
++    # ------------------------------------------------------------------------------------
+     END_BNWL=$(grep -oic '@BNWLinclude' "${TEMPLATE}")
+ 
+-    # Doklejanie sekcji w odpowiednie miejsca i zamiana na wyjątki
++    # Add sections to the right places and replace them with exceptions
+     for ((n = 1; n <= END_BNWL; n++)); do
+         initVars "BNWLinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -287,10 +253,13 @@ for i in "$@"; do
+         includeSection "NWLinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, które zostaną pobrane ze źródeł zewnętrznych i dodane z nich zostaną tylko unikalne elementy
++
++    #
++    # @URLUinclude
++    # ------------------------------------------------------------------------------------
+     END_URLU=$(grep -oic '@URLUinclude' "${TEMPLATE}")
+ 
+-    # Dodawanie unikalnych reguł z zewnętrznych list
++    # Add unique rules from external lists
+     for ((n = 1; n <= END_URLU; n++)); do
+         EXTERNAL=$(awk '$1 == "@URLUinclude" { print $2; exit }' "$FINAL")
+         CLONED_EXTERNAL=$(awk '$1 == "@URLUinclude" { print $3; exit }' "$FINAL")
+@@ -315,10 +284,13 @@ for i in "$@"; do
+         includeSection "URLUinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, które zostaną pobrane ze źródeł zewnętrznych i połączone z lokalnymi sekcjami
++
++    #
++    # @COMBINEinclude
++    # ------------------------------------------------------------------------------------
+     END_COMBINE=$(grep -oic '@COMBINEinclude' "${TEMPLATE}")
+ 
+-    # Łączenie lokalnych i zewnętrznych sekcji w jedno oraz doklejanie ich w odpowiednie miejsca
++    # Combine local and external sections into one and glue them to the right places
+     for ((n = 1; n <= END_COMBINE; n++)); do
+         initCVars "COMBINEinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -350,10 +322,13 @@ for i in "$@"; do
+         rm -rf "$SECTIONS_TEMP"
+     done
+ 
+-    # Obliczanie ilości sekcji/list filtrów, które zostaną przekonwertowane na hosts
++
++    #
++    # @HOSTSinclude
++    # ------------------------------------------------------------------------------------
+     END_HOSTS=$(grep -oic '@HOSTSinclude' "${TEMPLATE}")
+ 
+-    # Konwertowanie na hosts i doklejanie zawartości sekcji/list filtrów w odpowiednie miejsca
++    # Convert to hosts and add filter section/list content to the right places
+     for ((n = 1; n <= END_HOSTS; n++)); do
+         initVars "HOSTSinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -373,10 +348,13 @@ for i in "$@"; do
+         includeSection "HOSTSinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, które zostaną pobrane ze źródeł zewnętrznych i połączone z lokalnymi sekcjami
++
++    #
++    # @COMBINEHOSTSinclude
++    # ------------------------------------------------------------------------------------
+     END_HOSTSCOMBINE=$(grep -oic '@COMBINEHOSTSinclude' "${TEMPLATE}")
+ 
+-    # Łączenie lokalnych i zewnętrznych sekcji w jedno oraz doklejanie ich w odpowiednie miejsca
++    # Combine local and external sections into one and glue them to the right places
+     for ((n = 1; n <= END_HOSTSCOMBINE; n++)); do
+         initCVars "COMBINEHOSTSinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -399,10 +377,13 @@ for i in "$@"; do
+         includeSection "COMBINEHOSTSinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji/list filtrów, które zostaną przekonwertowane na format domenowy
++
++    #
++    # @DOMAINSinclude
++    # ------------------------------------------------------------------------------------
+     END_DOMAINS=$(grep -oic '@DOMAINSinclude' "${TEMPLATE}")
+ 
+-    # Konwertowanie na domeny i doklejanie zawartości sekcji/list filtrów w odpowiednie miejsca
++    # Convert to domains and add filter section/list content to the right places
+     for ((n = 1; n <= END_DOMAINS; n++)); do
+         initVars "DOMAINSinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -422,10 +403,13 @@ for i in "$@"; do
+         includeSection "DOMAINSinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, które zostaną pobrane ze źródeł zewnętrznych i połączone z lokalnymi sekcjami
++
++    #
++    # @COMBINEDOMAINSinclude
++    # ------------------------------------------------------------------------------------
+     END_DOMAINSCOMBINE=$(grep -oic '@COMBINEDOMAINSinclude' "${TEMPLATE}")
+ 
+-    # Łączenie lokalnych i zewnętrznych sekcji w jedno oraz doklejanie ich w odpowiednie miejsca
++    # Combine local and external sections into one and glue them to the right places
+     for ((n = 1; n <= END_DOMAINSCOMBINE; n++)); do
+         initCVars "COMBINEDOMAINSinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -448,10 +432,14 @@ for i in "$@"; do
+         includeSection "COMBINEDOMAINSinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji/list filtrów, z których zostanie wyodrębnionych część reguł (jedynie reguły zawierajace gwiazdki) w celu konwersji na format regex zgodny z PiHole
++
++    #
++    # @PHinclude
++    # ------------------------------------------------------------------------------------
+     END_PH=$(grep -oic '@PHinclude' "${TEMPLATE}")
+ 
+-    # Konwertowanie na format regex zgodny z PiHole i doklejanie zawartości sekcji/list filtrów w odpowiednie miejsca
++    # Convert to PiHole-compatible regex format and add filter section/list content to the
++    # right places
+     for ((n = 1; n <= END_PH; n++)); do
+         initVars "PHinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -471,10 +459,14 @@ for i in "$@"; do
+         includeSection "PHinclude"
+     done
+ 
+-    # Obliczanie ilości sekcji, które zostaną pobrane ze źródeł zewnętrznych, skonwerterowane na format regex zgodny z Pi-hole (jedynie reguły zawierajace gwiazdki) i połączone z lokalnymi sekcjami
++
++    #
++    # @COMBINEPHinclude
++    # ------------------------------------------------------------------------------------
+     END_PHCOMBINE=$(grep -oic '@COMBINEPHinclude' "${TEMPLATE}")
+ 
+-    # Konwertowanie na format regex zgodny z PiHole oraz łączenie lokalnych i zewnętrznych sekcji w jedno oraz doklejanie ich w odpowiednie miejsca
++    # Convert to PiHole-compatible regex format and combine local and external sections
++    # into one and glue them to the right places
+     for ((n = 1; n <= END_PHCOMBINE; n++)); do
+         initCVars "COMBINEPHinclude"
+         if [[ "$EXTERNAL" =~ ^(http(s):|ftp:) ]]; then
+@@ -506,14 +498,15 @@ for i in "$@"; do
+         includeSection "COMBINEPHinclude"
+     done
+ 
+-    # Usuwanie zbędnych instrukcji z finalnego pliku
++    # Remove unnecessary instructions from the final file
+     sed -i '/@path /d' "$FINAL"
+     sed -i '/@sectionsExt /d' "$FINAL"
+ 
+-    # Przejście do katalogu, w którym znajduje się lokalne repozytorium git
++    # Go to the directory where the local git repository is located
+     cd "$MAIN_PATH" || exit
+ 
+-    # Ustawianie nazwy kodowej (krótszej nazwy listy filtrów) do opisu commita w zależności od tego, co jest wpisane w polu „Codename:". Jeśli nie ma takiego pola, to codename=nazwa_pliku.
++    # Set a code name (shorter filter list name) to describe the commit depending on what
++    # is typed in the "Codename:" field. If there is no such field, codename=nazwa_pliku.
+     if grep -q "! Codename" "$i"; then
+         filter=$(grep -oP -m 1 '! Codename: \K.*' "$i")
+     else
+@@ -521,117 +514,38 @@ for i in "$@"; do
+         filter="$FILTERLIST"
+     fi
+ 
+-    # Dodawanie zmienionych sekcji do repozytorium git
+-    if [ ! "$RTM" ]; then
+-        git add "$SECTIONS_DIR"/*
+-        git commit -m "$(gettext "Update sections")" -m "[ci skip]"
+-    fi
+-
+-    # Ustawienie strefy czasowej
++    # Setting the time zone
+     TIMEZONE=$(grep -oP -m 1 '@tz \K.*' "$CONFIG")
+     if [ -n "$TIMEZONE" ]; then
+         export TZ="$TIMEZONE"
+     fi
+ 
+-    # Obliczanie starej i nowej sumy kontrolnej md5 bez komentarzy
+-    sed -i '/^! /d' "$FINAL_B"
+-    sed -i '/^# /d' "$FINAL_B"
+-    cp "$FINAL" "$FINAL_B.new"
+-    sed -i '/^! /d' "$FINAL_B.new"
+-    sed -i '/^# /d' "$FINAL_B.new"
+-    old_md5=$(md5sum "$FINAL_B" | cut -d ' ' -f 1)
+-    new_md5=$(md5sum "$FINAL_B.new" | cut -d ' ' -f 1)
+-
+-    # Usuwanie kopii pliku początkowego
++    # Delete a copy of the initial file
+     if [ -f "$FINAL_B" ]; then
+         rm -r "$FINAL_B"
+     fi
+ 
+-    if [ -f "$FINAL_B.new" ]; then
+-        rm -r "$FINAL_B.new"
++
++    # Update the date and time in the "Last modified" field
++    if grep -q '@modified' "$i"; then
++        export LC_TIME="en_US.UTF-8"
++        modified=$(date +"$(grep -oP -m 1 '@dateFormat \K.*' "$CONFIG")")
++        sed -i "s|@modified|$modified|g" "$i"
+     fi
+ 
+-    # Sprawdzanie czy aktualizacja naprawdę jest konieczna
+-    if [ "$old_md5" != "$new_md5" ] || [ "$FORCED" ]; then
+-        # Aktualizacja daty i godziny w polu „Last modified"
+-        if grep -q '@modified' "$i"; then
+-            export LC_TIME="en_US.UTF-8"
+-            modified=$(date +"$(grep -oP -m 1 '@dateFormat \K.*' "$CONFIG")")
+-            sed -i "s|@modified|$modified|g" "$i"
+-        fi
+-
+-        # Aktualizacja wersji
+-        VERSION_FORMAT=$(grep -oP -m 1 '@versionFormat \K.*' "$CONFIG")
+-        if [[ "$VERSION_FORMAT" = "Year.Month.NumberOfCommitsInMonth" ]]; then
+-            version=$(date +"%Y").$(date +"%-m").$(git rev-list --count HEAD --after="$(date -d "-$(date +%d) days " "+%Y-%m-%dT23:59")" "$FINAL")
+-        elif [[ "$VERSION_FORMAT" = "Year.Month.Day.TodayNumberOfCommits" ]]; then
+-            version=$(date +"%Y").$(date +"%-m").$(date +"%-d").$(($(git rev-list --count HEAD --before="$(date '+%F' --date="tomorrow")"T24:00 --after="$(date '+%F' -d "1 day ago")"T23:59 "$FINAL")))
+-        elif grep -q -oP -m 1 '@versionDateFormat \K.*' "$CONFIG"; then
+-            version=$(date +"$(grep -oP -m 1 '@versionDateFormat \K.*' "$CONFIG")")
+-        else
+-            version=$(date +"%Y%m%d%H%M")
+-        fi
+-
+-        if grep -q '@version' "$i"; then
+-            sed -i "s|@version|$version|g" "$i"
+-        fi
+-
+-        # Aktualizacja pola „aktualizacja"
+-        if grep -q '@aktualizacja' "$i"; then
+-            export LC_TIME="pl_PL.UTF-8"
+-            aktualizacja=$(date +"$(grep -oP -m 1 '@dateFormat \K.*' "$CONFIG")")
+-            sed -i "s|@aktualizacja|$aktualizacja|g" "$i"
+-        fi
+-
+-        # Aktualizacja sumy kontrolnej
+-        # Założenie: kodowanie UTF-8 i styl końca linii Unix
+-        # Usuwanie starej sumy kontrolnej i pustych linii
+-        grep -v '! Checksum: ' "$i" | grep -v '^$' >"$i".chk
+-        # Pobieranie sumy kontrolnej... Binarny MD5 zakodowany w Base64
+-        checksum=$(openssl dgst -md5 -binary "$i".chk | openssl enc -base64 | cut -d "=" -f 1)
+-        # Zamiana atrapy sumy kontrolnej na prawdziwą
+-        sed -i "/! Checksum: /c\! Checksum: $checksum" "$i"
+-        rm -r "$i".chk
+-
+-        # Dodawanie zmienionych plików do repozytorium git
+-        git add "$i"
+-
+-        # Zapisywanie nazw zmienionych plików
+-        if [ "$SAVE_CHANGED_FN" = "true" ]; then
+-            git diff --cached --name-only --pretty=format: | sort -u  >> "$SCRIPT_PATH"/V_CHANGED_FILES.txt
+-        fi
+-
+-        # Commitowanie zmienionych plików
+-        if [ "$CI" = "true" ]; then
+-            commit_desc=$(grep -oP -m 1 '@commitDesc \K.*' "$CONFIG")
+-            git commit -m "$(eval_gettext "Update \$filter to version \$version")" -m "[ci skip]" -m "${commit_desc}"
+-        else
+-            printf "%s" "$(eval_gettext "Enter extended commit description to \$filter list, e.g 'Fix #1, fix #2' (without quotation marks; if you do not want an extended description, you can simply enter nothing): ")"
+-            read -r extended_desc
+-            git commit -m "$(eval_gettext "Update \$filter to version \$version")" -m "[ci skip]" -m "${extended_desc}"
+-        fi
++    # Version update
++    VERSION_FORMAT=$(grep -oP -m 1 '@versionFormat \K.*' "$CONFIG")
++    if [[ "$VERSION_FORMAT" = "Year.Month.NumberOfCommitsInMonth" ]]; then
++        version=$(date +"%Y").$(date +"%-m").$(git rev-list --count HEAD --after="$(date -d "-$(date +%d) days " "+%Y-%m-%dT23:59")" "$FINAL")
++    elif [[ "$VERSION_FORMAT" = "Year.Month.Day.TodayNumberOfCommits" ]]; then
++        version=$(date +"%Y").$(date +"%-m").$(date +"%-d").$(($(git rev-list --count HEAD --before="$(date '+%F' --date="tomorrow")"T24:00 --after="$(date '+%F' -d "1 day ago")"T23:59 "$FINAL")))
++    elif grep -q -oP -m 1 '@versionDateFormat \K.*' "$CONFIG"; then
++        version=$(date +"$(grep -oP -m 1 '@versionDateFormat \K.*' "$CONFIG")")
+     else
+-        printf "%s\n" "$(eval_gettext "Nothing new has been added to \$filter list. If you still want to update it, then set the variable FORCED and run script again.")"
+-        git checkout "$FINAL"
++        version=$(date +"%Y%m%d%H%M")
++    fi
++
++    if grep -q '@version' "$i"; then
++        sed -i "s|@version|$version|g" "$i"
+     fi
+ done
+-
+-# Wysyłanie zmienionych plików do repozytorium git
+-commited=$(git cherry -v)
+-if [[ "$commited" ]] && [[ "$NO_PUSH" != "true" ]]; then
+-    if [ "$CI" = "true" ]; then
+-        GIT_SLUG=$(git ls-remote --get-url | sed "s|https://||g" | sed "s|git@||g" | sed "s|:|/|g")
+-        git push https://"${CI_USERNAME}":"${GIT_TOKEN}"@"${GIT_SLUG}" >/dev/null 2>&1
+-    else
+-        printf "%s\n" "$(gettext "Do you want to send changed files to git now?")"
+-        select yn in $(gettext "Yes") $(gettext "No"); do
+-            case $yn in
+-            "$(gettext "Yes")")
+-                git push
+-                break
+-                ;;
+-            "$(gettext "No")") break ;;
+-            esac
+-        done
+-    fi
+-fi

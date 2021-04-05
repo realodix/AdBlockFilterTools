@@ -1,0 +1,349 @@
+diff --git a/FOP_RuAdList/fop.py b/FOP_AdBlockID/fop.py
+index 06e1987..671b337 100644
+--- a/FOP_RuAdList/fop.py
++++ b/FOP_AdBlockID/fop.py
+@@ -1,26 +1,17 @@
+ #!/usr/bin/env python3
+-""" FOP (Filter Orderer and Preener)
++""" FOP AdBlockID
++
++    Adjusted for AdBlockID
++    Based on FOP RU AdList v3.921
+ 
+     Copyright (C) 2011 Michael
+     GNU General Public License
+-
+-    Adjusted for RU Adlist by Lain Inverse in 2020.
+ """
+ 
+-# FOP version number
+-VERSION = 3.921
+-
+-# Import the key modules
+ import collections, filecmp, os, re, subprocess, sys
+ 
+-# Check the version of Python for language compatibility and subprocess.check_output()
+-MAJORREQUIRED = 3
+-MINORREQUIRED = 1
+-if sys.version_info < (MAJORREQUIRED, MINORREQUIRED):
+-    raise RuntimeError("FOP requires Python {reqmajor}.{reqminor} or greater, but Python {ismajor}.{isminor} is being used to run this program.".format(reqmajor = MAJORREQUIRED, reqminor = MINORREQUIRED, ismajor = sys.version_info.major, isminor = sys.version_info.minor))
+-
+-# Import a module only available in Python 3
+-from urllib.parse import urlparse
++VERSION = "1.5"
++SECTIONS_EXT = [".txt", ".adbl"]
+ 
+ # Compile regular expressions to match important filter parts (derived from Wladimir
+ # Palant's Adblock Plus source code)
+@@ -34,8 +25,8 @@ REDIWRITEOPTIONPATTERN = re.compile(r"^(redirect(-rule)?|rewrite)=")
+ # tree selectors; "@" indicates either the beginning or the end of a selector
+ SELECTORPATTERN = re.compile(r"(?<=[\s\[@])([a-zA-Z]*[A-Z][a-zA-Z0-9]*)((?=([\[\]\^\*\$=:@#\.]))|(?=(\s(?:[+>~]|\*|[a-zA-Z][a-zA-Z0-9]*[\[:@\s#\.]|[#\.][a-zA-Z][a-zA-Z0-9]*))))")
+ PSEUDOPATTERN = re.compile(r"(\:[a-zA-Z\-]*[A-Z][a-zA-Z\-]*)(?=([\(\:\@\s]))")
+-# (?!:-) - skip Adblock Plus' :-abp-... pseudoclasses, (?!:style\() - skip uBlock Origin's
+-# :style() pseudoclass
++# (?!:-) - skip Adblock Plus' :-abp-... pseudoclasses
++# (?!:style\() - skip uBo's :style() pseudoclass
+ REMOVE_AST_PATTERN = re.compile(r"((?<=([>+~,]\s))|(?<=(@|\s|,)))(\*)(?=([#\.\[\:]))(?!:-)(?!:style\()")
+ SELECTORSTYLEPART = re.compile(r":style\(.+\)$")
+ REMOVE_0PX_PATTERN = re.compile(r"((?<=([\:\s]0))(px)(?=([\s\!])))")
+@@ -44,34 +35,35 @@ ATTRIBUTEVALUEPATTERN = re.compile(r"^([^\'\"\\]|\\.)*(\"(?:[^\"\\]|\\.)*\"|\'(?
+ TREESELECTOR = re.compile(r"(\\.|[^\+\>\~\\\ \t])\s*([\+\>\~\ \t])\s*(\D)")
+ UNICODESELECTOR = re.compile(r"\\[0-9a-fA-F]{1,6}\s[a-zA-Z]*[A-Z]")
+ NONSELECTOR = re.compile(r"^(\+js\(|script:inject\()")
+-SELECTORANDTAILPATTERN = re.compile(r"^(.*?)((:-abp-contains|:style)(.*))?$")
++SELECTORANDTAILPATTERN = re.compile(r"^(.*?)((:-abp-contains|:style|:matches-css)(.*))?$")
+ 
+ # Compile a regular expression that describes a completely blank line
+ BLANKPATTERN = re.compile(r"^\s*$")
+ 
+-# Compile a regular expression that validates commit comments
+-COMMITPATTERN = re.compile(r"^(A|M|P)\:\s(\((.+)\)\s)?(.*)$")
+-
+ # List the files that should not be sorted, either because they have a special sorting
+ # system or because they are not filter files
+-IGNORE = ("CC-BY-SA.txt", "easytest.txt", "GPL.txt", "MPL.txt", "antinuha.txt",
+-          "enhancedstats-addon.txt", "fanboy-tracking", "firefox-regional", "other")
++IGNORE = ("adblockid.txt", "docs", "tools", "template",
++          "python-abp", "python-abp_AdBlockID", "VICHS_AdBlockID")
++
++# List all options (excepting domain, which is handled separately)
++KNOWNOPTIONS = (
++    # ABP
++    # https://help.eyeo.com/en/adblockplus/how-to-write-filters#options
++    "document", "elemhide", "font", "genericblock", "generichide", "image", "match-case", "media", "object", "other", "ping", "popup", "script", "stylesheet", "subdocument", "third-party", "webrtc", "websocket", "xmlhttprequest",
++
++    # uBlock Origin
++    # https://github.com/gorhill/uBlock/wiki/Static-filter-syntax
++    "1p", "first-party", "strict1p", "3p", "strict3p", "all", "badfilter", "cname", "csp", "css", "doc", "ehide", "frame", "ghide", "important", "inline-font", "inline-script", "mp4", "object-subrequest", "popunder", "shide", "specifichide", "xhr"
++)
+ 
+-# List all Adblock Plus options (excepting domain, which is handled separately), as of
+-# version 1.3.9
+-KNOWNOPTIONS = ("badfilter", "collapse", "doc", "document", "elemhide", "empty", "font",
+-                "genericblock", "generichide", "image", "important", "inline-script",
+-                "match-case", "media", "object", "object-subrequest", "other", "ping", "popunder", "popup",
+-                "script", "stylesheet", "subdocument",  "first-party", "third-party",
+-                "websocket", "webrtc", "xmlhttprequest")
+ # List of known key=value parameters (domain is not included)
+-KNOWNPARAMETERS = ("csp", "queryprune", "rewrite", "redirect", "redirect-rule")
++KNOWNPARAMETERS = (
++    # ABP
++    "rewrite",
+ 
+-# List the supported revision control system commands
+-REPODEF = collections.namedtuple("repodef", "name, directory, locationoption, repodirectoryoption, checkchanges, difference, pull, checkupdate, update, merge, commit, push")
+-GIT = REPODEF(["git"], "./.git/", "--work-tree=", "--git-dir=", ["status", "-s", "--untracked-files=no"], ["diff"], ["pull"], None, None, ["merge"], ["commit", "-am"], ["push"])
+-HG = REPODEF(["hg"], "./.hg/", "-R", None, ["stat", "-q"], ["diff"], ["pull"], ["update", "--check"], ["update"], ["merge"], ["commit", "-m"], ["push"])
+-REPOTYPES = (GIT, HG)
++    # uBO
++    "csp", "denyallow", "redirect", "redirect-rule", "removeparam"
++)
+ 
+ 
+ ##
+@@ -79,7 +71,7 @@ REPOTYPES = (GIT, HG)
+ # or the current working directory if no arguments have been passed.
+ #
+ def start ():
+-    greeting = "FOP (Filter Orderer and Preener) version {version}".format(version = VERSION)
++    greeting = "FOP AdBlockID v{version}".format(version = VERSION)
+     characters = len(str(greeting))
+     print("=" * characters)
+     print(greeting)
+@@ -108,31 +100,6 @@ def main (location):
+         print("{location} does not exist or is not a folder.".format(location = location))
+         return
+ 
+-    # Set the repository type based on hidden directories
+-    repository = None
+-    for repotype in REPOTYPES:
+-        if os.path.isdir(os.path.join(location, repotype.directory)):
+-            repository = repotype
+-            break
+-    # If this is a repository, record the initial changes; if this fails, give up trying to use the repository
+-    if repository:
+-        try:
+-            basecommand = repository.name
+-            if repository.locationoption.endswith("="):
+-                basecommand.append("{locationoption}{location}".format(locationoption = repository.locationoption, location = location))
+-            else:
+-                basecommand.extend([repository.locationoption, location])
+-            if repository.repodirectoryoption:
+-                if repository.repodirectoryoption.endswith("="):
+-                    basecommand.append("{repodirectoryoption}{location}".format(repodirectoryoption = repository.repodirectoryoption, location = os.path.normpath(os.path.join(location, repository.directory))))
+-                else:
+-                    basecommand.extend([repository.repodirectoryoption, location])
+-            command = basecommand + repository.checkchanges
+-            originaldifference = True if subprocess.check_output(command) else False
+-        except(subprocess.CalledProcessError, OSError):
+-            print("The command \"{command}\" was unable to run; FOP will therefore not attempt to use the repository tools. On Windows, this may be an indication that you do not have sufficient privileges to run FOP - the exact reason why is unknown. Please also ensure that your revision control system is installed correctly and understood by FOP.".format(command = " ".join(command)))
+-            repository = None
+-
+     # Work through the directory and any subdirectories, ignoring hidden directories
+     print("\nPrimary location: {folder}".format(folder = os.path.join(os.path.abspath(location), "")))
+     for path, directories, files in os.walk(location):
+@@ -140,14 +107,14 @@ def main (location):
+             if direct.startswith(".") or direct in IGNORE:
+                 directories.remove(direct)
+ 
+-        print("Current directory: {folder}".format(folder = os.path.join(os.path.abspath(path), "")))
++        print("{folder}".format(folder = os.path.join(os.path.abspath(path), "")))
+         directories.sort()
+         for filename in sorted(files):
+             address = os.path.join(path, filename)
+             extension = os.path.splitext(filename)[1]
+ 
+             # Sort all text files that are not blacklisted
+-            if extension == ".txt" and filename not in IGNORE:
++            if extension in SECTIONS_EXT and filename not in IGNORE:
+                 fopsort(address)
+ 
+             # Delete unnecessary backups and temporary files
+@@ -159,10 +126,6 @@ def main (location):
+                     # that the file has already been deleted
+                     pass
+ 
+-    # If in a repository, offer to commit any changes
+-    if repository:
+-        commit(repository, basecommand, originaldifference)
+-
+ 
+ ##
+ # Sort the sections of the file and save any modifications.
+@@ -302,7 +265,7 @@ def fopsort (filename):
+             os.remove(filename)
+ 
+         os.rename(temporaryfile, filename)
+-        print("Sorted: {filename}".format(filename = os.path.abspath(filename)))
++        print("Sorted: {filename}".format(filename = os.path.basename(filename)))
+     else:
+         os.remove(temporaryfile)
+ 
+@@ -311,15 +274,18 @@ def sortfunc (option):
+     # For identical options, the inverse always follows the non-inverse option ($image,
+     # ~image instead of $~image,image) with exception for popup filter
+     if option[0] == "~": return option[1:] + "{"
+-
+     if option == "popup": return option + "}"
+ 
+-    # Also let third-party will always be first in the list
+-    if option.find("third-party") > -1: return "0" + option
++    # Also will always be first in the list
++    if (option.find("important") > -1
++       or option.find("first-party") > -1
++       or option.find("strict1p") > -1
++       or option.find("third-party") > -1
++       or option.find("strict3p") > -1):
++        return "0" + option
+ 
+     # And let badfilter and key=value parameters will always be last in the list
+     if option.find("badfilter") > -1: return "|" + option
+-
+     if option.split('=')[0] in KNOWNPARAMETERS: return "}" + option
+ 
+     return option
+@@ -340,6 +306,7 @@ def filtertidy (filterin):
+         optionlist = optionsplit.group(2).lower().split(",")
+ 
+         domainlist = []
++        denyallow = []
+         removeentries = []
+         queryprune = ""
+         rediwritelist = []
+@@ -350,8 +317,11 @@ def filtertidy (filterin):
+             if option[0:7] == "domain=":
+                 domainlist.extend(option[7:].split("|"))
+                 removeentries.append(option)
+-            elif option[0:11] == "queryprune=":
+-                queryprune = option[11:]
++            elif option[0:10] == "denyallow=":
++                denyallow.extend(option[10:].split("|"))
++                removeentries.append(option)
++            elif option[0:12] == "removeparam=":
++                queryprune = option[12:]
+                 removeentries.append(option)
+             elif re.match(REDIWRITEOPTIONPATTERN, option):
+                 keepAsterisk = True
+@@ -376,13 +346,17 @@ def filtertidy (filterin):
+         # Append queryprune back at the end (both to keep it at the end and skip
+         # underscore typo fix)
+         if queryprune:
+-            optionlist.append("queryprune={queryprune}".format(queryprune = queryprune))
++            optionlist.append("removeparam={queryprune}".format(queryprune = queryprune))
+ 
+         # Append redirect rule back without underscore typo fix
+         if rediwritelist:
+             optionlist.extend(rediwritelist)
+ 
+         # If applicable, sort domain restrictions and append them to the list of options
++        if denyallow:
++            optionlist.append(
++                "denyallow={denyallow}".format(denyallow = "|".join(sorted(set(denyallow))))
++            )
+         if domainlist:
+             optionlist.append(
+                 "domain={domainlist}".format(domainlist = "|".join(sorted(set(domainlist),
+@@ -504,7 +478,7 @@ def elementtidy (domains, separator, selector):
+         )
+ 
+     # Remove unnecessary 'px' in '0px' and space in "! important"
+-    if splitterpart == ":style" and tailpart != None:
++    if splitterpart == ":style" or splitterpart == ":matches-css" and tailpart != None:
+         for un0px in each(REMOVE_0PX_PATTERN, tailpart):
+             bc = un0px.group(2)
+             ac = un0px.group(4)
+@@ -529,50 +503,6 @@ def elementtidy (domains, separator, selector):
+     return "{domain}{separator}{selector}{splitter}{tail}".format(domain = domains, separator = separator, selector = selector[1:-1], splitter = splitterpart, tail = tailpart)
+ 
+ 
+-def commit (repository, basecommand, userchanges):
+-    """ Commit changes to a repository using the commands provided."""
+-    difference = subprocess.check_output(basecommand + repository.difference)
+-    if not difference:
+-        print("\nNo changes have been recorded by the repository.")
+-        return
+-    print("\nThe following changes have been recorded by the repository:")
+-    try:
+-        print(difference.decode("utf-8"))
+-    except UnicodeEncodeError:
+-        print("\nERROR: DIFF CONTAINED UNKNOWN CHARACTER(S). Showing unformatted diff instead:\n")
+-        print(difference)
+-    try:
+-        # Persistently request a suitable comment
+-        while True:
+-            comment = input("Please enter a valid commit comment or quit:\n")
+-            if checkcomment(comment, userchanges):
+-                break
+-    # Allow users to abort the commit process if they do not approve of the changes
+-    except (KeyboardInterrupt, SystemExit):
+-        print("\nCommit aborted.")
+-        return
+-
+-    print("Comment \"{comment}\" accepted.".format(comment = comment))
+-    try:
+-        print("\nConnecting to server. Please enter your password if required.")
+-        # Update the server repository as required by the revision control system
+-        for command in repository[6:]:
+-            if command == None:
+-                continue
+-            if command == repository.commit:
+-                command += [comment]
+-            command = basecommand + command
+-            subprocess.Popen(command).communicate()
+-            print()
+-    except(subprocess.CalledProcessError):
+-        print("Unexpected error with the command \"{command}\".".format(command = command))
+-        raise subprocess.CalledProcessError("Aborting FOP.", command)
+-    except(OSError):
+-        print("Unexpected error with the command \"{command}\".".format(command = command))
+-        raise OSError("Aborting FOP.")
+-    print("Completed commit process successfully.")
+-
+-
+ ##
+ # Check whether all domains are negations.
+ #
+@@ -619,43 +549,5 @@ def removeunnecessarywildcards (filtertext, keepAsterisk):
+     return filtertext
+ 
+ 
+-def checkcomment(comment, changed):
+-    """ Check the commit comment and return True if the comment is
+-    acceptable and False if it is not."""
+-    sections = re.match(COMMITPATTERN, comment)
+-    if sections == None:
+-        print("The comment \"{comment}\" is not in the recognised format.".format(comment = comment))
+-    else:
+-        indicator = sections.group(1)
+-        if indicator == "M":
+-            # Allow modification comments to have practically any format
+-            return True
+-        elif indicator == "A" or indicator == "P":
+-            if not changed:
+-                print("You have indicated that you have added or removed a rule, but no changes were initially noted by the repository.")
+-            else:
+-                address = sections.group(4)
+-                if not validurl(address):
+-                    print("Unrecognised address \"{address}\".".format(address = address))
+-                else:
+-                    # The user has changed the subscription and has written a suitable comment message with a valid address
+-                    return True
+-    print()
+-    return False
+-
+-
+-def validurl (url):
+-    """ Check that an address has a scheme (e.g. http), a domain name
+-    (e.g. example.com) and a path (e.g. /), or relates to the internal
+-    about system."""
+-    addresspart = urlparse(url)
+-    if addresspart.scheme and addresspart.netloc and addresspart.path:
+-        return True
+-    elif addresspart.scheme == "about":
+-        return True
+-    else:
+-        return False
+-
+-
+ if __name__ == '__main__':
+     start()
