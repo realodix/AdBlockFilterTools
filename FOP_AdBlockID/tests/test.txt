@@ -1,0 +1,8 @@
+! $script,domain=example.com|example1.com
+*$script,domain=example.com|example1.com|example.com
+!
+! *$popunder,domain=example.com
+*$popunder,domain=example.com
+!
+! $3p,script,denyallow=x.com|y.com,domain=a.com|b.com
+$3p,script,denyallow=y.com|x.com,domain=b.com|a.com
