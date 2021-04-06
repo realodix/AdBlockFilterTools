@@ -1,5 +1,5 @@
 diff --git a/FOP_RuAdList/fop.py b/FOP_AdBlockID/fop.py
-index 06e1987..671b337 100644
+index 06e1987..954c947 100644
 --- a/FOP_RuAdList/fop.py
 +++ b/FOP_AdBlockID/fop.py
 @@ -1,26 +1,17 @@
@@ -224,7 +224,7 @@ index 06e1987..671b337 100644
                  removeentries.append(option)
              elif re.match(REDIWRITEOPTIONPATTERN, option):
                  keepAsterisk = True
-@@ -376,13 +346,17 @@ def filtertidy (filterin):
+@@ -376,17 +346,21 @@ def filtertidy (filterin):
          # Append queryprune back at the end (both to keep it at the end and skip
          # underscore typo fix)
          if queryprune:
@@ -238,11 +238,25 @@ index 06e1987..671b337 100644
          # If applicable, sort domain restrictions and append them to the list of options
 +        if denyallow:
 +            optionlist.append(
-+                "denyallow={denyallow}".format(denyallow = "|".join(sorted(set(denyallow))))
++                "denyallow={denyallow}".format(denyallow = "|".join(sorted(set(denyallow))).lstrip('|'))
 +            )
          if domainlist:
              optionlist.append(
                  "domain={domainlist}".format(domainlist = "|".join(sorted(set(domainlist),
+-                key = lambda domain: domain.strip("~"))))
++                key = lambda domain: domain.strip("~"))).lstrip('|'))
+             )
+ 
+         # according to uBO documentation redirect options must start either with * or ||
+@@ -407,7 +381,7 @@ def filtertidy (filterin):
+ def elementtidy (domains, separator, selector):
+     # Order domain names alphabetically, ignoring exceptions
+     if "," in domains:
+-        domains = ",".join(sorted(set(domains.split(",")), key = lambda domain: domain.strip("~")))
++        domains = ",".join(sorted(set(domains.split(",")), key = lambda domain: domain.strip("~"))).lstrip(',')
+ 
+     # Skip non-selectors (uBO's JS injections and other)
+     if re.match(NONSELECTOR, selector) != None:
 @@ -504,7 +478,7 @@ def elementtidy (domains, separator, selector):
          )
  
