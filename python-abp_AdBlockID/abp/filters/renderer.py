@@ -141,7 +141,7 @@ def _remove_checksum(lines):
             yield line
 
 
-def _rendering_engine_info(lines):
+def _compiler_info(lines):
     pa_abid = 'python-abp (AdBlockID version)'
 
     for line in lines:
@@ -149,7 +149,7 @@ def _rendering_engine_info(lines):
             pa_abid
         yield line
 
-    yield Metadata('Rendering Engine', pa_abid)
+    yield Metadata('Compiler', pa_abid)
 
 
 def _validate(lines):
@@ -191,7 +191,7 @@ def render_filterlist(name, sources, top_source=None):
     _logger.info('Rendering: %s', name)
     lines, default_source = _get_and_parse_fragment(name, sources, top_source)
     lines = _process_includes(sources, default_source, [name], lines)
-    for proc in [_process_timestamps, _rendering_engine_info, _insert_version, _remove_checksum,
+    for proc in [_process_timestamps, _compiler_info, _insert_version, _remove_checksum,
                  _validate]:
         lines = proc(lines)
     return lines

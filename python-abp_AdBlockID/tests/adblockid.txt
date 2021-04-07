@@ -1,8 +1,8 @@
 [Adblock Plus 2.0]
-! Version: 21.4.19
+! Version: 21.4.4
 ! Title: AdBlockID
 ! Description: Filter list that specifically removes adverts on Indonesian language websites.
-! Last modified: 05 Apr 2021 20:05 UTC
+! Last modified: 07 Apr 2021 13:16 UTC
 ! Expires: 4 days (update frequency)
 !
 ! Comment with space
@@ -31,4 +31,4 @@ example.com#@##ad-class
 example.com##.entry div[style="clear:both; margin-top:0em; margin-bottom:1em;"] > a[rel="nofollow"][target="_self"]
 example.com###thread_post_list > [id^="moderated-"]:has-text(Post ini telah dihapus oleh)
 example.com##html:style(user-select: text !important; -webkit-touch-callout: default !important;)
-! Rendering Engine: PA AdBlockID
+! Compiler: python-abp (AdBlockID version)
