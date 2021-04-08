@@ -79,6 +79,8 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
                         yield line
             except (NotFound, ValueError) as exc:
                 raise IncludeError(exc, include_stack)
+        elif line.type == 'emptyline':
+            continue
         else:
             yield line
 

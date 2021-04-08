@@ -19,7 +19,7 @@ index 00f5661..1a982d5 100644
      if stripped.startswith('%include') and stripped.endswith('%'):
          return _parse_instruction(stripped)
 diff --git a/python-abp/abp/filters/renderer.py b/python-abp_AdBlockID/abp/filters/renderer.py
-index dd7fcf1..bad61ba 100644
+index dd7fcf1..568ef84 100644
 --- a/python-abp/abp/filters/renderer.py
 +++ b/python-abp_AdBlockID/abp/filters/renderer.py
 @@ -2,11 +2,12 @@
@@ -36,7 +36,7 @@ index dd7fcf1..bad61ba 100644
  from .sources import NotFound
  
  __all__ = ['IncludeError', 'MissingHeader', 'render_filterlist', 'render_diff']
-@@ -72,7 +73,7 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
+@@ -72,12 +73,14 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
                      sources, inherited_source, include_stack, included)
  
                  _logger.info('- including: %s', name)
@@ -45,7 +45,14 @@ index dd7fcf1..bad61ba 100644
                  for line in all_included:
                      if line.type not in {'header', 'metadata'}:
                          yield line
-@@ -102,7 +103,28 @@ def _first_and_rest(iterable):
+             except (NotFound, ValueError) as exc:
+                 raise IncludeError(exc, include_stack)
++        elif line.type == 'emptyline':
++            continue
+         else:
+             yield line
+ 
+@@ -102,7 +105,28 @@ def _first_and_rest(iterable):
  def _insert_version(lines):
      """Insert metadata comment with version (a.k.a. date)."""
      first_line, rest = _first_and_rest(lines)
@@ -75,7 +82,7 @@ index dd7fcf1..bad61ba 100644
      return itertools.chain([first_line, version], rest)
  
  
-@@ -119,6 +141,17 @@ def _remove_checksum(lines):
+@@ -119,6 +143,17 @@ def _remove_checksum(lines):
              yield line
  
  
@@ -93,7 +100,7 @@ index dd7fcf1..bad61ba 100644
  def _validate(lines):
      """Validate the final list."""
      first_line, rest = _first_and_rest(lines)
-@@ -158,7 +191,7 @@ def render_filterlist(name, sources, top_source=None):
+@@ -158,7 +193,7 @@ def render_filterlist(name, sources, top_source=None):
      _logger.info('Rendering: %s', name)
      lines, default_source = _get_and_parse_fragment(name, sources, top_source)
      lines = _process_includes(sources, default_source, [name], lines)
