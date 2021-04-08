@@ -1,5 +1,5 @@
 diff --git a/python-abp/abp/filters/parser.py b/python-abp_AdBlockID/abp/filters/parser.py
-index 00f5661..1a982d5 100644
+index 00f5661..78a6c21 100644
 --- a/python-abp/abp/filters/parser.py
 +++ b/python-abp_AdBlockID/abp/filters/parser.py
 @@ -168,7 +168,6 @@ def _line_type(name, field_names, format_string):
@@ -10,11 +10,35 @@ index 00f5661..1a982d5 100644
  Metadata = _line_type('Metadata', 'key value', '! {0.key}: {0.value}')
  Filter = _line_type('Filter', 'text selector action options', '{.text}')
  Include = _line_type('Include', 'target', '%include {0.target}%')
-@@ -337,7 +336,6 @@ def parse_line(line, position='body'):
+@@ -323,21 +322,26 @@ def parse_line(line, position='body'):
+ 
+     stripped = line.strip()
+ 
+-    if stripped == '':
+-        return EmptyLine()
+-
+     if position == 'start':
+         match = HEADER_REGEXP.search(line)
+         if match:
+             return Header(match.group(1))
+ 
+-    if stripped.startswith('!'):
++    # if re.search('^\s*$'       # blank line
++    #              '|^!(\s?)\w'  # comment
++    #              '|^#(\s?)\w', # uBo comment
++    #              stripped):
++    if (stripped == ''                      # blank line
++       or stripped.startswith('!')          # comment
++       and not stripped.startswith('!#')
++       or stripped.startswith('#')          # uBo comment
++       and not stripped.startswith('##')):
+         match = METADATA_REGEXP.match(line)
+         if match:
              key, value = match.groups()
              if position != 'body' or key.lower() == 'checksum':
                  return Metadata(key, value)
 -        return Comment(stripped[1:].lstrip())
++        return EmptyLine()
  
      if stripped.startswith('%include') and stripped.endswith('%'):
          return _parse_instruction(stripped)

@@ -1,5 +1,7 @@
 ! Comment with space
 !Comment without space
+# uBo comment with space
+#uBo comment without space
 
 !#include ublock-filters.txt
 !#include ublock/filters.txt
