@@ -10,7 +10,7 @@
 
 import collections, filecmp, os, re, subprocess, sys
 
-VERSION = "1.5"
+VERSION = "1.6"
 SECTIONS_EXT = [".txt", ".adbl"]
 
 # Compile regular expressions to match important filter parts (derived from Wladimir
