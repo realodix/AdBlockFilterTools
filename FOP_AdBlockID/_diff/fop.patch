@@ -1,5 +1,5 @@
 diff --git a/FOP_RuAdList/fop.py b/FOP_AdBlockID/fop.py
-index 06e1987..954c947 100644
+index 06e1987..cb1ee0f 100644
 --- a/FOP_RuAdList/fop.py
 +++ b/FOP_AdBlockID/fop.py
 @@ -1,26 +1,17 @@
@@ -30,7 +30,7 @@ index 06e1987..954c947 100644
 -
 -# Import a module only available in Python 3
 -from urllib.parse import urlparse
-+VERSION = "1.5"
++VERSION = "1.6"
 +SECTIONS_EXT = [".txt", ".adbl"]
  
  # Compile regular expressions to match important filter parts (derived from Wladimir
