@@ -1,5 +1,5 @@
 diff --git a/python-abp/abp/filters/parser.py b/python-abp_AdBlockID/abp/filters/parser.py
-index 00f5661..78a6c21 100644
+index 00f5661..5ec4797 100644
 --- a/python-abp/abp/filters/parser.py
 +++ b/python-abp_AdBlockID/abp/filters/parser.py
 @@ -168,7 +168,6 @@ def _line_type(name, field_names, format_string):
@@ -10,7 +10,7 @@ index 00f5661..78a6c21 100644
  Metadata = _line_type('Metadata', 'key value', '! {0.key}: {0.value}')
  Filter = _line_type('Filter', 'text selector action options', '{.text}')
  Include = _line_type('Include', 'target', '%include {0.target}%')
-@@ -323,21 +322,26 @@ def parse_line(line, position='body'):
+@@ -323,21 +322,23 @@ def parse_line(line, position='body'):
  
      stripped = line.strip()
  
@@ -23,15 +23,12 @@ index 00f5661..78a6c21 100644
              return Header(match.group(1))
  
 -    if stripped.startswith('!'):
-+    # if re.search('^\s*$'       # blank line
-+    #              '|^!(\s?)\w'  # comment
-+    #              '|^#(\s?)\w', # uBo comment
-+    #              stripped):
-+    if (stripped == ''                      # blank line
-+       or stripped.startswith('!')          # comment
-+       and not stripped.startswith('!#')
-+       or stripped.startswith('#')          # uBo comment
-+       and not stripped.startswith('##')):
++    # Blank lines and all comment types are returned as EmptyLine. EmptyLine will be
++    # ignored on renderer._process_includes().
++    if re.search('^\s*$'            # blank line
++                 '|^!$|^![^#+]'     # comment
++                 '|^#$|^#[^#@$?%]', # uBo comment
++                 stripped):
          match = METADATA_REGEXP.match(line)
          if match:
              key, value = match.groups()
@@ -43,7 +40,7 @@ index 00f5661..78a6c21 100644
      if stripped.startswith('%include') and stripped.endswith('%'):
          return _parse_instruction(stripped)
 diff --git a/python-abp/abp/filters/renderer.py b/python-abp_AdBlockID/abp/filters/renderer.py
-index dd7fcf1..568ef84 100644
+index dd7fcf1..e1d81d0 100644
 --- a/python-abp/abp/filters/renderer.py
 +++ b/python-abp_AdBlockID/abp/filters/renderer.py
 @@ -2,11 +2,12 @@
@@ -60,7 +57,7 @@ index dd7fcf1..568ef84 100644
  from .sources import NotFound
  
  __all__ = ['IncludeError', 'MissingHeader', 'render_filterlist', 'render_diff']
-@@ -72,12 +73,14 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
+@@ -72,12 +73,15 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
                      sources, inherited_source, include_stack, included)
  
                  _logger.info('- including: %s', name)
@@ -71,12 +68,13 @@ index dd7fcf1..568ef84 100644
                          yield line
              except (NotFound, ValueError) as exc:
                  raise IncludeError(exc, include_stack)
++        # Remove blank lines
 +        elif line.type == 'emptyline':
 +            continue
          else:
              yield line
  
-@@ -102,7 +105,28 @@ def _first_and_rest(iterable):
+@@ -102,7 +106,28 @@ def _first_and_rest(iterable):
  def _insert_version(lines):
      """Insert metadata comment with version (a.k.a. date)."""
      first_line, rest = _first_and_rest(lines)
@@ -106,7 +104,7 @@ index dd7fcf1..568ef84 100644
      return itertools.chain([first_line, version], rest)
  
  
-@@ -119,6 +143,17 @@ def _remove_checksum(lines):
+@@ -119,6 +144,17 @@ def _remove_checksum(lines):
              yield line
  
  
@@ -124,7 +122,7 @@ index dd7fcf1..568ef84 100644
  def _validate(lines):
      """Validate the final list."""
      first_line, rest = _first_and_rest(lines)
-@@ -158,7 +193,7 @@ def render_filterlist(name, sources, top_source=None):
+@@ -158,7 +194,7 @@ def render_filterlist(name, sources, top_source=None):
      _logger.info('Rendering: %s', name)
      lines, default_source = _get_and_parse_fragment(name, sources, top_source)
      lines = _process_includes(sources, default_source, [name], lines)

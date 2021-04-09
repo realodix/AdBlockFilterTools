@@ -1,26 +1,14 @@
 [Adblock Plus 2.0]
-! Version: 21.4.6
+! Version: 21.4.10
 ! Title: AdBlockID
 ! Description: Filter list that specifically removes adverts on Indonesian language websites.
-! Last modified: 08 Apr 2021 22:53 UTC
+! Last modified: 09 Apr 2021 13:45 UTC
 ! Expires: 4 days (update frequency)
 !#include ublock-filters.txt
-!#include ublock/filters.txt
-*$script,domain=example.com
-||example.com^$third-party
-##.ad-class
-###ad-id
-example.com##.ad-class
-example.com#@#.ad-class
-example.com###ad-id
-example.com#@##ad-class
-/fuckadblock.$script,redirect-rule=noop.js,domain=example.com
-@@/adsbygoogle.$script,domain=example.com
-||example.com/api/$script,redirect=noop.js
-@@.gif#*/ad/
-@@.jpg#*/ad/
-@@.png#*/ad/
-example.com##.entry div[style="clear:both; margin-top:0em; margin-bottom:1em;"] > a[rel="nofollow"][target="_self"]
-example.com###thread_post_list > [id^="moderated-"]:has-text(Post ini telah dihapus oleh)
-example.com##html:style(user-select: text !important; -webkit-touch-callout: default !important;)
+!+ HINT_NAME1
+##
+#@#
+#$#
+#?#
+#%#
 ! Compiler: python-abp (AdBlockID version)

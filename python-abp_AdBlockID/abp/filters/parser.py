@@ -327,15 +327,12 @@ def parse_line(line, position='body'):
         if match:
             return Header(match.group(1))
 
-    # if re.search('^\s*$'       # blank line
-    #              '|^!(\s?)\w'  # comment
-    #              '|^#(\s?)\w', # uBo comment
-    #              stripped):
-    if (stripped == ''                      # blank line
-       or stripped.startswith('!')          # comment
-       and not stripped.startswith('!#')
-       or stripped.startswith('#')          # uBo comment
-       and not stripped.startswith('##')):
+    # Blank lines and all comment types are returned as EmptyLine. EmptyLine will be
+    # ignored on renderer._process_includes().
+    if re.search('^\s*$'            # blank line
+                 '|^!$|^![^#+]'     # comment
+                 '|^#$|^#[^#@$?%]', # uBo comment
+                 stripped):
         match = METADATA_REGEXP.match(line)
         if match:
             key, value = match.groups()
