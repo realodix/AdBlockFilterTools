@@ -168,6 +168,7 @@ def _line_type(name, field_names, format_string):
 
 Header = _line_type('Header', 'version', '[{.version}]')
 EmptyLine = _line_type('EmptyLine', '', '')
+Comment = _line_type('Comment', 'text', '{.text}')
 Metadata = _line_type('Metadata', 'key value', '! {0.key}: {0.value}')
 Filter = _line_type('Filter', 'text selector action options', '{.text}')
 Include = _line_type('Include', 'target', '%include {0.target}%')
@@ -322,15 +323,16 @@ def parse_line(line, position='body'):
 
     stripped = line.strip()
 
+    if stripped == '':
+        return EmptyLine()
+
     if position == 'start':
         match = HEADER_REGEXP.search(line)
         if match:
             return Header(match.group(1))
 
-    # Blank lines and all comment types are returned as EmptyLine. EmptyLine will be
-    # ignored on renderer._process_includes().
-    if re.search('^\s*$'            # blank line
-                 '|^!$|^![^#+]'     # comment
+    # ABP comments and uBo comments (rules starting with #)
+    if re.search('^!$|^![^#+]'      # comment
                  '|^#$|^#[^#@$?%]', # uBo comment
                  stripped):
         match = METADATA_REGEXP.match(line)
@@ -338,7 +340,7 @@ def parse_line(line, position='body'):
             key, value = match.groups()
             if position != 'body' or key.lower() == 'checksum':
                 return Metadata(key, value)
-        return EmptyLine()
+        return Comment(stripped)
 
     if stripped.startswith('%include') and stripped.endswith('%'):
         return _parse_instruction(stripped)
