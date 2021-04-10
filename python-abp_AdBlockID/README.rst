@@ -119,10 +119,6 @@ See `python-abp: Library API <https://github.com/realodix/AdBlockFilterTools/tre
 Development
 -----------
 
-When adding new functionality, add tests for it (preferably first). If some
-code will never be reached on a certain version of Python, it may be exempted
-from coverage tests by adding a comment, e.g. ``# pragma: no py2 cover``.
-
 All public functions, classes and methods should have docstrings compliant with
 `NumPy/SciPy documentation guide <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
 One exception is the constructors of classes that the user is not expected to
