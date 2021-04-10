@@ -1,5 +1,5 @@
 diff --git a/python-abp/abp/filters/parser.py b/python-abp_AdBlockID/abp/filters/parser.py
-index 00f5661..c9e3f0b 100644
+index 00f5661..b16e51e 100644
 --- a/python-abp/abp/filters/parser.py
 +++ b/python-abp_AdBlockID/abp/filters/parser.py
 @@ -168,7 +168,7 @@ def _line_type(name, field_names, format_string):
@@ -17,8 +17,8 @@ index 00f5661..c9e3f0b 100644
  
 -    if stripped.startswith('!'):
 +    # ABP comments and uBo comments (rules starting with #)
-+    if re.search('^!$|^![^#+]'      # comment
-+                 '|^#$|^#[^#@$?%]', # uBo comment
++    if re.search('^!$|^![^#+]'                 # comment
++                 '|^#$|^#[^#@$?%]|^##(\s|##)', # uBo comment
 +                 stripped):
          match = METADATA_REGEXP.match(line)
          if match:

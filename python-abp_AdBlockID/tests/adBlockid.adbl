@@ -4,10 +4,15 @@
 !#include ublock-filters.txt
 !+ HINT_NAME1
 
+# uBo syntax comments with space
+#uBo syntax comments without space
+## uBo syntax comments
+####uBo syntax comments without space
+#### uBo syntax comments with space
 
-# uBo comment with space
-#uBo comment without space
-##
+##html-elements
+##.css-class-selector
+###css-id-selector
 #@#
 #$#
 #?#

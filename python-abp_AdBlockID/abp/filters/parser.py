@@ -332,8 +332,8 @@ def parse_line(line, position='body'):
             return Header(match.group(1))
 
     # ABP comments and uBo comments (rules starting with #)
-    if re.search('^!$|^![^#+]'      # comment
-                 '|^#$|^#[^#@$?%]', # uBo comment
+    if re.search('^!$|^![^#+]'                 # comment
+                 '|^#$|^#[^#@$?%]|^##(\s|##)', # uBo comment
                  stripped):
         match = METADATA_REGEXP.match(line)
         if match:
