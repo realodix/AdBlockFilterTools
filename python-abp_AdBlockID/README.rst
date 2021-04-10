@@ -113,7 +113,7 @@ See `python-abp: Generating diffs <https://github.com/adblockplus/python-abp#gen
 Library API
 -----------
 
-See `python-abp: Library API <https://github.com/realodix/AdBlockFilterTools/tree/main/python-abp#id5>`_.
+See `python-abp: Library API <https://github.com/adblockplus/python-abp#library-api>`_.
 
 
 Development
@@ -140,4 +140,4 @@ License
 ---------
 This file is part of `Adblock Plus <https://adblockplus.org/>`_.
 
-Copyright (C) 2006-present eyeo GmbH. Licensed under the [GNU General Public License](http://www.gnu.org/licenses/).
+Copyright (C) 2006-present eyeo GmbH. Licensed under the `GNU General Public License <http://www.gnu.org/licenses/>`_.
