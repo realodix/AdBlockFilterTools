@@ -1,0 +1,25 @@
+diff --git a/python-abp/setup.py b/python-abp_AdBlockID/setup.py
+index d64948e..4d9d8f1 100644
+--- a/python-abp/setup.py
++++ b/python-abp_AdBlockID/setup.py
+@@ -1,12 +1,18 @@
+ from os import path
+ from setuptools import setup
++from distutils.util import convert_path
++
++main_ns = {}
++ver_path = convert_path('abp/version.py')
++with open(ver_path) as ver_file:
++    exec(ver_file.read(), main_ns)
+ 
+ with open(path.join(path.dirname(__file__), 'README.rst')) as fh:
+     long_description = fh.read()
+ 
+ setup(
+-    name='python-abp',
+-    version='0.2.0',
++    name='PA-AdBlockID',
++    version=main_ns['__version__'],
+     description='A library for working with Adblock Plus filter lists.',
+     long_description=long_description,
+     long_description_content_type='text/x-rst',

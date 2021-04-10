@@ -13,4 +13,4 @@
 #$#
 #?#
 #%#
-! Compiler: python-abp (AdBlockID version)
+! Compiler: PA-AdBlockID v1.2.0

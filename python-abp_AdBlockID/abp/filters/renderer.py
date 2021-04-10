@@ -1,6 +1,7 @@
 """Combine filter list fragments to produce filter lists."""
 
 from __future__ import unicode_literals
+from abp.version import __version__
 
 import datetime, subprocess
 import itertools
@@ -145,7 +146,7 @@ def _remove_checksum(lines):
 
 
 def _compiler_info(lines):
-    pa_abid = 'python-abp (AdBlockID version)'
+    pa_abid = 'PA-AdBlockID v{}'.format(__version__)
 
     for line in lines:
         if line.type != 'emptyline':

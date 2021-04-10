@@ -1,3 +1,15 @@
+diff --git a/python-abp/abp/__init__.py b/python-abp_AdBlockID/abp/__init__.py
+index 347d52b..25d724b 100644
+--- a/python-abp/abp/__init__.py
++++ b/python-abp_AdBlockID/abp/__init__.py
+@@ -2,4 +2,7 @@
+ 
+ - abp.filters - Tools for working with Adblock Plus filter lists.
+ """
++
++from .version import __version__
++
+ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 diff --git a/python-abp/abp/filters/parser.py b/python-abp_AdBlockID/abp/filters/parser.py
 index 00f5661..b16e51e 100644
 --- a/python-abp/abp/filters/parser.py
@@ -31,12 +43,14 @@ index 00f5661..b16e51e 100644
      if stripped.startswith('%include') and stripped.endswith('%'):
          return _parse_instruction(stripped)
 diff --git a/python-abp/abp/filters/renderer.py b/python-abp_AdBlockID/abp/filters/renderer.py
-index dd7fcf1..b56555c 100644
+index dd7fcf1..abb755c 100644
 --- a/python-abp/abp/filters/renderer.py
 +++ b/python-abp_AdBlockID/abp/filters/renderer.py
-@@ -2,11 +2,12 @@
+@@ -1,12 +1,14 @@
+ """Combine filter list fragments to produce filter lists."""
  
  from __future__ import unicode_literals
++from abp.version import __version__
  
 +import datetime, subprocess
  import itertools
@@ -48,7 +62,7 @@ index dd7fcf1..b56555c 100644
  from .sources import NotFound
  
  __all__ = ['IncludeError', 'MissingHeader', 'render_filterlist', 'render_diff']
-@@ -72,12 +73,15 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
+@@ -72,12 +74,15 @@ def _process_includes(sources, default_source, parent_include_stack, lines):
                      sources, inherited_source, include_stack, included)
  
                  _logger.info('- including: %s', name)
@@ -65,7 +79,7 @@ index dd7fcf1..b56555c 100644
          else:
              yield line
  
-@@ -102,7 +106,28 @@ def _first_and_rest(iterable):
+@@ -102,7 +107,28 @@ def _first_and_rest(iterable):
  def _insert_version(lines):
      """Insert metadata comment with version (a.k.a. date)."""
      first_line, rest = _first_and_rest(lines)
@@ -95,12 +109,12 @@ index dd7fcf1..b56555c 100644
      return itertools.chain([first_line, version], rest)
  
  
-@@ -119,6 +144,17 @@ def _remove_checksum(lines):
+@@ -119,6 +145,17 @@ def _remove_checksum(lines):
              yield line
  
  
 +def _compiler_info(lines):
-+    pa_abid = 'python-abp (AdBlockID version)'
++    pa_abid = 'PA-AdBlockID v{}'.format(__version__)
 +
 +    for line in lines:
 +        if line.type != 'emptyline':
@@ -113,7 +127,7 @@ index dd7fcf1..b56555c 100644
  def _validate(lines):
      """Validate the final list."""
      first_line, rest = _first_and_rest(lines)
-@@ -158,7 +194,7 @@ def render_filterlist(name, sources, top_source=None):
+@@ -158,7 +195,7 @@ def render_filterlist(name, sources, top_source=None):
      _logger.info('Rendering: %s', name)
      lines, default_source = _get_and_parse_fragment(name, sources, top_source)
      lines = _process_includes(sources, default_source, [name], lines)
@@ -122,3 +136,15 @@ index dd7fcf1..b56555c 100644
                   _validate]:
          lines = proc(lines)
      return lines
+diff --git a/python-abp_AdBlockID/abp/version.py b/python-abp_AdBlockID/abp/version.py
+new file mode 100644
+index 0000000..dfca378
+--- /dev/null
++++ b/python-abp_AdBlockID/abp/version.py
+@@ -0,0 +1,6 @@
++# Store the version here so:
++# 1) we don't load dependencies by storing it in __init__.py
++# 2) we can import it in setup.py for the same reason
++# 3) we can import it into module
++
++__version__ = '1.2.0'
