@@ -393,7 +393,7 @@ def filtertidy (filterin):
         # so, it is not unnecessary wildcard in such case
         filtertext = removeunnecessarywildcards(optionsplit.group(1), keepAsterisk)
 
-        if keepAsterisk and filtertext[0] != '*' and filtertext[:2] != '||':
+        if keepAsterisk and (len(filtertext) < 1 or (len(filtertext) > 0 and filtertext[0] != '*' and filtertext[:2] != '||')):
             print("Warning: Incorrect filter \"{filterin}\". Such filters must start with either '*' or '||'.".format(filterin = filterin))
 
         # Return the full filter

@@ -1,5 +1,5 @@
 diff --git a/FOP_RuAdList/fop.py b/FOP_AdBlockID/fop.py
-index 06e1987..cb1ee0f 100644
+index d61b4f6..e74eb37 100644
 --- a/FOP_RuAdList/fop.py
 +++ b/FOP_AdBlockID/fop.py
 @@ -1,26 +1,17 @@
