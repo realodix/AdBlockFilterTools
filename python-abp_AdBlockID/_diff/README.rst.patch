@@ -1,5 +1,5 @@
 diff --git a/python-abp/README.rst b/python-abp_AdBlockID/README.rst
-index dcc4daa..75eaec0 100644
+index dcc4daa..f04b5f3 100644
 --- a/python-abp/README.rst
 +++ b/python-abp_AdBlockID/README.rst
 @@ -1,6 +1,8 @@
@@ -31,7 +31,7 @@ index dcc4daa..75eaec0 100644
  
  
  Rendering of filter lists
-@@ -104,111 +107,14 @@ options accordingly.
+@@ -104,119 +107,18 @@ options accordingly.
  Generating diffs
  ----------------
  
@@ -73,7 +73,7 @@ index dcc4daa..75eaec0 100644
  
 -python-abp can also be used as a library for parsing filter lists. For example
 -to read a filter list (we use Python 3 syntax here but the API is the same):
-+See `python-abp: Library API <https://github.com/realodix/AdBlockFilterTools/tree/main/python-abp#id5>`_.
++See `python-abp: Library API <https://github.com/adblockplus/python-abp#library-api>`_.
  
 -.. code-block:: python
 -
@@ -145,7 +145,15 @@ index dcc4daa..75eaec0 100644
  
  Development
  -----------
-@@ -225,56 +131,8 @@ instantiate (such as exceptions).
+ 
+-When adding new functionality, add tests for it (preferably first). If some
+-code will never be reached on a certain version of Python, it may be exempted
+-from coverage tests by adding a comment, e.g. ``# pragma: no py2 cover``.
+-
+ All public functions, classes and methods should have docstrings compliant with
+ `NumPy/SciPy documentation guide <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
+ One exception is the constructors of classes that the user is not expected to
+@@ -225,56 +127,8 @@ instantiate (such as exceptions).
  
  Using the library with R
  ------------------------
@@ -203,3 +211,9 @@ index dcc4daa..75eaec0 100644
  
  
  Reference
+@@ -286,4 +140,4 @@ License
+ ---------
+ This file is part of `Adblock Plus <https://adblockplus.org/>`_.
+ 
+-Copyright (C) 2006-present eyeo GmbH. Licensed under the [GNU General Public License](http://www.gnu.org/licenses/).
++Copyright (C) 2006-present eyeo GmbH. Licensed under the `GNU General Public License <http://www.gnu.org/licenses/>`_.
