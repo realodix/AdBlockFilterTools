@@ -1,0 +1,19 @@
+! Comment with space
+!Comment without space
+!
+!#include ublock-filters.txt
+!+ HINT_NAME1
+
+# uBo syntax comments with space
+#uBo syntax comments without space
+## uBo syntax comments
+####uBo syntax comments without space
+#### uBo syntax comments with space
+
+##html-elements
+##.css-class-selector
+###css-id-selector
+#@#
+#$#
+#?#
+#%#

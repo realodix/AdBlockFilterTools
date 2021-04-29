@@ -6,6 +6,7 @@ A collection of tools for building AdBlock filters.
 
 | Code    | Description |
 | ------- | ----------- |
+| **FC**  | FiltersCompiler |
 | **FA**  | FOP AdBlockID |
 | **FP**  | FOP PolishFiltersTeam |
 | **FR**  | FOP RuAdList |
